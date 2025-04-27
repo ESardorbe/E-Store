@@ -11,6 +11,7 @@ import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { UpdatePasswordDto } from "./dto/update-password.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 
 @Injectable()
 export class AuthService {
@@ -143,11 +144,13 @@ export class AuthService {
     const user = await this.userModel.findOne({ email });
 
     if (!user) {
-      throw new Error("Foydalanuvchi topilmadi!");
+      throw new HttpException("Foydalanuvchi topilmadi!", HttpStatus.NOT_FOUND);
+
     }
 
     if (user.verifyCode !== verifyCode) {
-      throw new Error("Noto‘g‘ri reset kodi!");
+      throw new HttpException("Noto‘g‘ri reset kodi!", HttpStatus.BAD_REQUEST);
+
     }
 
     if (user.verifyCodeExpiresAt && new Date() > user.verifyCodeExpiresAt) {
@@ -173,6 +176,7 @@ export class AuthService {
     }
 
     await this.userModel.findByIdAndUpdate(userId, { refreshToken: null });
+    
 
     if (user.isLogOut) {
       throw new HttpException(
@@ -201,6 +205,25 @@ export class AuthService {
   // Foydalanuvchilarni olish
   async getAllUsers(): Promise<User[]> {
     return this.userModel.find().select("-password -refreshToken");
+  }
+
+
+  // Foydalanuvchi profilini yangilash
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<UserDocument> {
+    const user = await this.userModel.findById(userId)
+    if (!user) {
+      throw new HttpException("Foydalanuvchi topilmadi!", HttpStatus.NOT_FOUND)
+    }
+
+    // Update only the provided fields
+    if (updateProfileDto.firstName) user.firstName = updateProfileDto.firstName
+    if (updateProfileDto.lastName) user.lastName = updateProfileDto.lastName
+    if (updateProfileDto.avatarUrl) user.avatarUrl = updateProfileDto.avatarUrl
+    if (updateProfileDto.phone) user.phone = updateProfileDto.phone
+
+    await user.save()
+
+    return user
   }
 
   // Token yaratish
