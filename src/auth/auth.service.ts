@@ -185,14 +185,20 @@ export class AuthService {
     await user.save();
   }
 
+  
+  // Foydalanuvchini ID orqali topish
   async findUserById(userId: string): Promise<UserDocument> {
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new HttpException("Foydalanuvchi topilmadi!", HttpStatus.NOT_FOUND);
     }
+
+
     return user;
   }
 
+
+  // Foydalanuvchilarni olish
   async getAllUsers(): Promise<User[]> {
     return this.userModel.find().select("-password -refreshToken");
   }

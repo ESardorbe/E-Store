@@ -26,6 +26,7 @@ export class AuthController {
 
   // Foydalanuvchi ro'yxatdan o'tishi
   @Post("register")
+  @ApiOperation({ summary: "Register" })
   @ApiResponse({
     status: 201,
     description: "Foydalanuvchi muvaffaqiyatli yaratildi",
@@ -37,6 +38,7 @@ export class AuthController {
 
   // Foydalanuvchi tizimga kirishi
   @Post("login")
+  @ApiOperation({ summary: "Login" })
   @ApiResponse({
     status: 200,
     description: "Foydalanuvchi tizimga muvaffaqiyatli kirdi",
@@ -51,6 +53,7 @@ export class AuthController {
 
   // Email tasdiqlash
   @Post("verify-email")
+  @ApiOperation({ summary: "Email tasdiqlash" })
   @ApiResponse({ status: 200, description: "Email tasdiqlandi" })
   @ApiResponse({
     status: 400,
@@ -65,6 +68,7 @@ export class AuthController {
 
   // Parolni tiklash
   @Post("reset-password")
+  @ApiOperation({ summary: "Parolni tiklash" })
   @ApiResponse({ status: 200, description: "Parolni tiklash kodi yuborildi" })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
@@ -72,6 +76,7 @@ export class AuthController {
 
   // Parolni yangilash
   @Post("update-password")
+  @ApiOperation({ summary: "Parolni yangilash" })
   @ApiResponse({ status: 200, description: "Parol muvaffaqiyatli yangilandi" })
   @ApiResponse({
     status: 400,
@@ -83,7 +88,7 @@ export class AuthController {
 
   @UseGuards(AccessTokenGuard)
   @Post("logout")
-  @ApiOperation({ summary: "Foydalanuvchi tizimdan chiqish" })
+  @ApiOperation({ summary: "Foydalanuvchi tizimdan chiqishi" })
   @ApiResponse({ status: 200, description: "Tizimdan muvaffaqiyatli chiqdi" })
   async logout(@GetCurrentUserId() userId: string) {
     await this.authService.logout(userId);
@@ -92,7 +97,7 @@ export class AuthController {
 
   @UseGuards(AccessTokenGuard)
   @Get("profile")
-  @ApiOperation({ summary: "Joriy foydalanuvchi profilini oling" })
+  @ApiOperation({ summary: "Joriy foydalanuvchi profilini olish" })
   @ApiResponse({ status: 200, description: "Foydalanuvchi profili qaytarildi" })
   async getProfile(@GetCurrentUserId() userId: string) {
     return this.authService.findUserById(userId);
@@ -101,7 +106,7 @@ export class AuthController {
   @UseGuards(AccessTokenGuard, AdminGuard)
   @Roles(Role.Admin)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Barcha foydalanuvchilarni oling (faqat administrator)" })
+  @ApiOperation({ summary: "Barcha foydalanuvchilarni olish (faqat administrator)" })
   @ApiOkResponse({ description: "Barcha foydalanuvchilar ro'yxati" })
   @Get("all-users")
   getAllUsers() {

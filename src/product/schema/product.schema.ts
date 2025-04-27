@@ -1,5 +1,5 @@
 // src/products/schemas/product.schema.ts
-import { Schema, Document } from 'mongoose';
+import { Schema, Document } from "mongoose";
 
 export interface Product extends Document {
   name: string;
@@ -21,7 +21,7 @@ export interface Product extends Document {
 
 export const ProductSchema = new Schema<Product>({
   name: { type: String, required: true },
-//   category_id: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+  //   category_id: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
   newPrice: { type: Number, required: true },
   oldPrice: { type: Number, required: true },
   colour: { type: String, required: true },
