@@ -18,7 +18,7 @@ import { AdminGuard } from "./guards/admin.guard";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_SECRET_KEY"),
+        secret: 'texnosardor',
         signOptions: { expiresIn: "1h" },
       }),
     }),

@@ -9,8 +9,8 @@ export class MailService {
     this.transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
+        user: 'texnosardor@gmail.com',
+        pass: 'pvyr rqtp mhrz ysna',
       },
     });
   }
@@ -18,7 +18,7 @@ export class MailService {
   // Tasdiqlash kodi yuborish
   async sendVerificationCode(email: string, verifyCode: string) {
     const message = {
-      from: process.env.MAIL_FROM,
+      from: 'texnosardor@gmail.com',
       to: email,
       subject: "Email tasdiqlash kodi",
       text: `Sizning tasdiqlash kodingiz: ${verifyCode}`,
