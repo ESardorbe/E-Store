@@ -45,38 +45,45 @@ describe("ProductsService", () => {
   };
 
   beforeEach(async () => {
-    // Soxta modellari yaratish
+    // Mock models
     mockProductModel = {
       find: jest.fn().mockReturnThis(),
-      findById: jest.fn(),
-      findOne: jest.fn().mockReturnThis(),
-      findByIdAndUpdate: jest.fn(),
-      findByIdAndDelete: jest.fn(),
+      findById: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(productData[0]),
+      }),
+      findOne: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      }),
+      findByIdAndUpdate: jest.fn().mockReturnThis(),
+      findByIdAndDelete: jest.fn().mockReturnThis(),
       countDocuments: jest.fn().mockResolvedValue(10),
       skip: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
       sort: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue(productData), // exec metodini mock qilish
-      save: jest.fn(),
-      aggregate: jest.fn(),
+      exec: jest.fn().mockResolvedValue(productData),
+      create: jest.fn(), // For create method
     };
 
     mockUserModel = {
-      findById: jest.fn().mockResolvedValue(userData),
-      findByIdAndUpdate: jest.fn(),
+      findById: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(userData),
+      }),
+      findByIdAndUpdate: jest.fn().mockReturnThis(),
       save: jest.fn(),
     };
 
     mockReviewModel = {
       find: jest.fn().mockReturnThis(),
-      findOne: jest.fn(),
-      aggregate: jest.fn(),
+      findOne: jest.fn().mockReturnThis(),
+      aggregate: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue([{ averageRating: 4.5, reviewCount: 10 }]),
+      }),
       populate: jest.fn().mockReturnThis(),
       sort: jest.fn().mockReturnThis(),
       exec: jest.fn(),
     };
 
-    // TestingModule yaratish
+    // Create TestingModule
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProductsService,
@@ -98,6 +105,10 @@ describe("ProductsService", () => {
     service = module.get<ProductsService>(ProductsService);
   });
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("should be defined", () => {
     expect(service).toBeDefined();
   });
@@ -110,8 +121,18 @@ describe("ProductsService", () => {
         sort: SortOrder.NEWEST,
       };
 
-      mockProductModel.exec.mockResolvedValue(productData);
-      mockReviewModel.aggregate.mockResolvedValue([]);
+      // Ensure the find chain is properly mocked
+      const queryMock = {
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(productData),
+      };
+
+      mockProductModel.find.mockReturnValue(queryMock);
+      mockReviewModel.aggregate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue([{ averageRating: 4.5, reviewCount: 10 }]),
+      });
 
       const result = await service.findAll(filterDto);
 
@@ -119,9 +140,10 @@ describe("ProductsService", () => {
       expect(result).toHaveProperty("total", 10);
       expect(result).toHaveProperty("pages", 1);
       expect(mockProductModel.find).toHaveBeenCalled();
-      expect(mockProductModel.sort).toHaveBeenCalledWith({ createdAt: -1 });
-      expect(mockProductModel.limit).toHaveBeenCalledWith(10);
-      expect(mockProductModel.skip).toHaveBeenCalledWith(0);
+      expect(queryMock.sort).toHaveBeenCalledWith({ createdAt: -1 });
+      expect(queryMock.limit).toHaveBeenCalledWith(10);
+      expect(queryMock.skip).toHaveBeenCalledWith(0);
+      expect(mockReviewModel.aggregate).toHaveBeenCalled();
     });
   });
 
@@ -129,18 +151,20 @@ describe("ProductsService", () => {
     it("should return a single product by id", async () => {
       const productId = new Types.ObjectId().toString();
 
-      const productData = {
+      const product = {
         _id: productId,
         name: "iPhone 12",
         price: 799,
         toObject: () => ({
-          _id: "product1",
+          _id: productId,
           name: "iPhone 12",
           price: 799,
         }),
       };
 
-      mockProductModel.findById.mockResolvedValue(productData);
+      mockProductModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(product),
+      });
 
       const result = await service.findById(productId);
 
@@ -153,7 +177,7 @@ describe("ProductsService", () => {
   describe("create", () => {
     it("should create a new product", async () => {
       const newProduct = {
-        name: "MacBook Pro",
+        name: "MacBook",
         price: 1299,
         category_id: new Types.ObjectId().toString(),
         imageUrl: "http://example.com/macbook-pro.jpg",
@@ -162,12 +186,15 @@ describe("ProductsService", () => {
       };
 
       const createdProduct = {
-        _id: new Types.ObjectId(),
+        _id: new Types.ObjectId().toString(),
         ...newProduct,
-        save: jest.fn().mockResolvedValue(newProduct),
       };
 
-      mockProductModel.save.mockResolvedValue(createdProduct);
+      mockProductModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null), // No existing product
+      });
+
+      mockProductModel.create.mockResolvedValue(createdProduct);
 
       const result = await service.create(newProduct);
 
@@ -177,7 +204,8 @@ describe("ProductsService", () => {
       expect(result).toHaveProperty("imageUrl");
       expect(result).toHaveProperty("colour");
       expect(result).toHaveProperty("details");
-      expect(mockProductModel.save).toHaveBeenCalled();
+      expect(mockProductModel.findOne).toHaveBeenCalledWith({ name: newProduct.name });
+      expect(mockProductModel.create).toHaveBeenCalledWith(newProduct);
     });
   });
 });

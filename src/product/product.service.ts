@@ -24,7 +24,6 @@ export class ProductsService {
     @InjectModel(Review.name) private reviewModel: Model<ReviewDocument>
   ) {}
 
-  // PRODUCT MANAGEMENT
   async create(createProductDto: CreateProductDto): Promise<Product> {
     const existingProduct = await this.productModel
       .findOne({ name: createProductDto.name })
@@ -162,6 +161,7 @@ export class ProductsService {
     if (!result) {
       throw new NotFoundException(`Product with ID "${id}" not found`);
     }
+    
   }
 
   // PRODUCT IMAGES
@@ -408,14 +408,10 @@ export class ProductsService {
   }
 
   async clearCart(userId: string): Promise<{ message: string }> {
-    const user = await this.userModel.findById(userId).exec();
+    const user = await this.userModel.findByIdAndDelete(userId).exec();
     if (!user) {
       throw new NotFoundException("User not found");
     }
-
-    user.cart = [];
-    await user.save();
-
     return { message: "Cart cleared successfully" };
   }
 

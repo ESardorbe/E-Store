@@ -12,6 +12,22 @@ import { DeliveryMethod } from "../dto/create-order.dto";
 import { Types } from "mongoose";
 import { BadRequestException } from "@nestjs/common";
 
+// Interface to define savedOrder type with save method
+interface MockOrder {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId;
+  products: { productId: Types.ObjectId; quantity: number; price: number; productName: string }[];
+  totalAmount: number;
+  status: string;
+  deliveryDetails: any;
+  paymentDetails: any;
+  notes: string;
+  createdAt: any;
+  updatedAt: any;
+  toObject: jest.Mock;
+  save?: jest.Mock;
+}
+
 describe("OrderService", () => {
   let service: OrderService;
   let paymentService: PaymentService;
@@ -21,38 +37,44 @@ describe("OrderService", () => {
   let mockUserModel: any;
 
   beforeEach(async () => {
+    jest.clearAllMocks(); // Reset mocks for test isolation
+
     mockOrderModel = {
-      new: jest.fn().mockReturnThis(),
-      save: jest.fn(),
+      create: jest.fn().mockImplementation((data) => Promise.resolve(data)),
       findById: jest.fn().mockReturnValue({
         exec: jest.fn().mockResolvedValue({ _id: "orderId" }),
       }),
-      find: jest.fn().mockReturnThis(),
-      populate: jest.fn().mockReturnThis(),
-      sort: jest.fn().mockReturnThis(),
-      exec: jest.fn(),
+      find: jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([]),
+      }),
+      prototype: { save: jest.fn() }, // Support new this.orderModel().save()
     };
 
     mockUserOrderModel = {
-      new: jest.fn().mockReturnThis(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn().mockReturnThis(),
-      sort: jest.fn().mockReturnThis(),
-      exec: jest.fn(),
+      create: jest.fn().mockImplementation((data) => Promise.resolve(data)),
+      findOne: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      }),
+      find: jest.fn().mockReturnValue({
+        sort: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([]),
+      }),
+      prototype: { save: jest.fn() }, // Support new this.userOrderModel().save()
     };
 
     mockProductModel = {
-      findById: jest.fn().mockResolvedValue({
-        _id: new Types.ObjectId(),
-        name: "Sample Product",
-        price: 100,
-      }),
+      findById: jest.fn(), // Set in tests
     };
 
     mockUserModel = {
-      findById: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
+      findById: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(null),
+      }),
+      findByIdAndUpdate: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ _id: "userId", cart: [] }),
+      }),
     };
 
     const mockPaymentService = {
@@ -115,10 +137,11 @@ describe("OrderService", () => {
         notes: "Test order",
       };
 
-      mockUserModel.findById.mockResolvedValue({
-        _id: userId,
-        cart: [], // Cart is empty
-        exec: jest.fn().mockResolvedValue({}),
+      mockUserModel.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          _id: userId,
+          cart: [],
+        }),
       });
 
       await expect(service.createOrder(userId, orderDto)).rejects.toThrowError(
@@ -140,7 +163,7 @@ describe("OrderService", () => {
           deliveryMethod: DeliveryMethod.STANDARD,
         },
         paymentDetails: {
-          amount: 300,
+          amount: 300, // Matches cart total: (100 * 1) + (100 * 2) = 300
           paymentMethod: PaymentMethod.CREDIT_CARD,
           cardNumber: "4111111111111111",
           cardExpiry: "12/24",
@@ -150,14 +173,17 @@ describe("OrderService", () => {
         notes: "Test order",
       };
 
-      mockUserModel.findById = jest.fn().mockReturnValue({
+      mockUserModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue({
           _id: userId,
-          cart: [], // cart is empty in the first test
+          cart: [
+            { productId: product1Id, quantity: 1 },
+            { productId: product2Id, quantity: 2 },
+          ],
         }),
       });
 
-      mockProductModel.findById = jest.fn().mockImplementation((id) => {
+      mockProductModel.findById.mockImplementation((id) => {
         if (id.equals(product1Id)) {
           return {
             exec: jest.fn().mockResolvedValue({
@@ -190,9 +216,9 @@ describe("OrderService", () => {
         message: "Payment processed successfully",
       });
 
-      const savedOrder = {
+      const savedOrder: MockOrder = {
         _id: new Types.ObjectId(),
-        userId,
+        userId: new Types.ObjectId(userId),
         products: [
           {
             productId: product1Id,
@@ -209,20 +235,39 @@ describe("OrderService", () => {
         ],
         totalAmount: 300,
         status: "processing",
-        toObject: () => ({
+        deliveryDetails: orderDto.deliveryDetails,
+        paymentDetails: {
+          paymentMethod: orderDto.paymentDetails.paymentMethod,
+          status: PaymentStatus.COMPLETED,
+          transactionId: "pay_123456789",
+          amount: 300,
+          processedAt: expect.any(Date),
+        },
+        notes: orderDto.notes,
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+        toObject: jest.fn().mockReturnValue({
           _id: "order1",
           userId,
           totalAmount: 300,
+          status: "processing",
         }),
       };
-      mockOrderModel.save.mockResolvedValue(savedOrder);
 
-      // Act
+      // Attach save method after declaration
+      savedOrder.save = jest.fn().mockResolvedValue(savedOrder);
+
+      mockOrderModel.create.mockResolvedValue(savedOrder);
+      mockUserOrderModel.create.mockResolvedValue({
+        userId: new Types.ObjectId(userId),
+        orderId: savedOrder._id,
+      });
+
       const result = await service.createOrder(userId, orderDto);
 
-      // Assert
       expect(result).toBeDefined();
-      expect(result.message).toContain("Order created successfully");
+      expect(result.message).toBe("Order created successfully");
+      expect(result.order).toBeDefined();
       expect(paymentService.processPayment).toHaveBeenCalledWith(
         orderDto.paymentDetails
       );
@@ -231,6 +276,8 @@ describe("OrderService", () => {
         { $set: { cart: [] } },
         { new: true }
       );
+      expect(mockOrderModel.create).toHaveBeenCalled();
+      expect(mockUserOrderModel.create).toHaveBeenCalled();
     });
   });
 });

@@ -217,7 +217,7 @@ export class ProductController {
   }
 
   // CART FUNCTIONALITY
-  @Post("cart")
+  @Post("newcart")
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Add product to cart" })
@@ -265,6 +265,17 @@ export class ProductController {
     );
   }
 
+  @Delete("cart")
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Clear cart" })
+  @ApiResponse({ status: 200, description: "Cart cleared successfully" })
+  async clearCart(
+    @GetCurrentUserId() userId: string
+  ): Promise<{ message: string }> {
+    return this.productsService.clearCart(userId);
+  }
+
   @Delete("cart/:productId")
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
@@ -284,16 +295,6 @@ export class ProductController {
     return this.productsService.removeFromCart(userId, productId);
   }
 
-  @Delete("cart")
-  @UseGuards(AccessTokenGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Clear cart" })
-  @ApiResponse({ status: 200, description: "Cart cleared successfully" })
-  async clearCart(
-    @GetCurrentUserId() userId: string
-  ): Promise<{ message: string }> {
-    return this.productsService.clearCart(userId);
-  }
 
   // ORDER FUNCTIONALITY
   @Post("orders")
