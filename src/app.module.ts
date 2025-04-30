@@ -13,7 +13,7 @@ import { join } from "path"
 @Module({
   imports: [
     ConfigModule.forRoot({ envFilePath: ".env", isGlobal: true }),
-    MongooseModule.forRoot(process.env.MONGO_URI as string),
+    MongooseModule.forRoot("mongodb+srv://texnosardor:MVYABOBKm1q8umzI@project.rdnygy3.mongodb.net/"),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, "..", "uploads"),
       serveRoot: "/uploads",
