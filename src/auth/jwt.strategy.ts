@@ -1,10 +1,10 @@
 import { UnauthorizedException } from "@nestjs/common"
 import { PassportStrategy } from "@nestjs/passport"
 import { ExtractJwt, Strategy } from "passport-jwt"
-import type { JwtPayload } from "./jwt-payload.interface"
+import  { JwtPayload } from "./jwt-payload.interface"
 import { InjectModel } from "@nestjs/mongoose"
-import type { Model } from "mongoose"
-import { User, type UserDocument } from "./schemas/user.schema"
+import  { Model } from "mongoose"
+import { User,  UserDocument } from "./schemas/user.schema"
 
 export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
   constructor(

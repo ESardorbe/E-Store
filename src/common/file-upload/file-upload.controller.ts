@@ -1,12 +1,26 @@
-import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, BadRequestException } from "@nestjs/common"
-import { FileInterceptor } from "@nestjs/platform-express"
-import  { FileUploadService } from "./file-upload.service"
-import { AccessTokenGuard } from "../../auth/guards/access-token.guard"
-import { AdminGuard } from "../../auth/guards/admin.guard"
-import { Roles } from "../../auth/decorator/roles.decorator"
-import { Role } from "../../auth/enums/role.enum"
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody } from "@nestjs/swagger"
-import { Express } from "express"
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  UseGuards,
+  BadRequestException,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { FileUploadService } from "./file-upload.service";
+import { AccessTokenGuard } from "../../auth/guards/access-token.guard";
+import { AdminGuard } from "../../auth/guards/admin.guard";
+import { Roles } from "../../auth/decorator/roles.decorator";
+import { Role } from "../../auth/enums/role.enum";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
+} from "@nestjs/swagger";
+import { Express } from "express";
 
 @ApiTags("File Upload")
 @Controller("upload")
@@ -34,11 +48,11 @@ export class FileUploadController {
   @UseInterceptors(FileInterceptor("file"))
   async uploadProfileImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
-      throw new BadRequestException("File is required")
+      throw new BadRequestException("File is required");
     }
 
-    const imageUrl = await this.fileUploadService.uploadFile(file, "profiles")
-    return { imageUrl }
+    const imageUrl = await this.fileUploadService.uploadFile(file, "profiles");
+    return { imageUrl };
   }
 
   @Post("product-image")
@@ -63,10 +77,10 @@ export class FileUploadController {
   @UseInterceptors(FileInterceptor("file"))
   async uploadProductImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
-      throw new BadRequestException("File is required")
+      throw new BadRequestException("File is required");
     }
-    
-    const imageUrl = await this.fileUploadService.uploadFile(file, "products")
-    return { imageUrl }
+
+    const imageUrl = await this.fileUploadService.uploadFile(file, "products");
+    return { imageUrl };
   }
 }

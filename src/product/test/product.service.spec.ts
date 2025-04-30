@@ -1,20 +1,51 @@
-import { Test, type TestingModule } from "@nestjs/testing"
-import { ProductsService } from "../product.service"
-import { getModelToken } from "@nestjs/mongoose"
-import { Product } from "../schema/product.schema"
-import { User } from "../../auth/schemas/user.schema"
-import { Review } from "../schema/review.schema"
-import { SortOrder } from "../dto/filter-product.dto"
-import { Types } from "mongoose"
+import { Test, TestingModule } from "@nestjs/testing";
+import { ProductsService } from "../product.service";
+import { getModelToken } from "@nestjs/mongoose";
+import { Product } from "../schema/product.schema";
+import { User } from "../../auth/schemas/user.schema";
+import { Review } from "../schema/review.schema";
+import { SortOrder } from "../dto/filter-product.dto";
+import { Types } from "mongoose";
 
 describe("ProductsService", () => {
-  let service: ProductsService
-  let mockProductModel: any
-  let mockUserModel: any
-  let mockReviewModel: any
+  let service: ProductsService;
+  let mockProductModel: any;
+  let mockUserModel: any;
+  let mockReviewModel: any;
+
+  const productData = [
+    {
+      _id: new Types.ObjectId(),
+      name: "iPhone 12",
+      price: 799,
+      toObject: () => ({
+        _id: "product1",
+        name: "iPhone 12",
+        price: 799,
+      }),
+    },
+    {
+      _id: new Types.ObjectId(),
+      name: "Samsung Galaxy S21",
+      price: 699,
+      toObject: () => ({
+        _id: "product2",
+        name: "Samsung Galaxy S21",
+        price: 699,
+      }),
+    },
+  ];
+
+  const userData = {
+    _id: new Types.ObjectId(),
+    firstName: "John",
+    lastName: "Doe",
+    email: "johndoe@example.com",
+    cart: [{ productId: new Types.ObjectId(), quantity: 2 }],
+  };
 
   beforeEach(async () => {
-    // Create mock implementations for our models
+    // Soxta modellari yaratish
     mockProductModel = {
       find: jest.fn().mockReturnThis(),
       findById: jest.fn(),
@@ -25,16 +56,16 @@ describe("ProductsService", () => {
       skip: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
       sort: jest.fn().mockReturnThis(),
-      exec: jest.fn(),
+      exec: jest.fn().mockResolvedValue(productData), // exec metodini mock qilish
       save: jest.fn(),
       aggregate: jest.fn(),
-    }
+    };
 
     mockUserModel = {
-      findById: jest.fn(),
+      findById: jest.fn().mockResolvedValue(userData),
       findByIdAndUpdate: jest.fn(),
       save: jest.fn(),
-    }
+    };
 
     mockReviewModel = {
       find: jest.fn().mockReturnThis(),
@@ -43,8 +74,9 @@ describe("ProductsService", () => {
       populate: jest.fn().mockReturnThis(),
       sort: jest.fn().mockReturnThis(),
       exec: jest.fn(),
-    }
+    };
 
+    // TestingModule yaratish
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProductsService,
@@ -61,61 +93,91 @@ describe("ProductsService", () => {
           useValue: mockReviewModel,
         },
       ],
-    }).compile()
+    }).compile();
 
-    service = module.get<ProductsService>(ProductsService)
-  })
+    service = module.get<ProductsService>(ProductsService);
+  });
 
   it("should be defined", () => {
-    expect(service).toBeDefined()
-  })
+    expect(service).toBeDefined();
+  });
 
   describe("findAll", () => {
     it("should return products with pagination info", async () => {
-      // Arrange
       const filterDto = {
         page: 1,
         limit: 10,
         sort: SortOrder.NEWEST,
-      }
+      };
 
-      const productData = [
-        {
-          _id: new Types.ObjectId(),
+      mockProductModel.exec.mockResolvedValue(productData);
+      mockReviewModel.aggregate.mockResolvedValue([]);
+
+      const result = await service.findAll(filterDto);
+
+      expect(result).toHaveProperty("products");
+      expect(result).toHaveProperty("total", 10);
+      expect(result).toHaveProperty("pages", 1);
+      expect(mockProductModel.find).toHaveBeenCalled();
+      expect(mockProductModel.sort).toHaveBeenCalledWith({ createdAt: -1 });
+      expect(mockProductModel.limit).toHaveBeenCalledWith(10);
+      expect(mockProductModel.skip).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("findById", () => {
+    it("should return a single product by id", async () => {
+      const productId = new Types.ObjectId().toString();
+
+      const productData = {
+        _id: productId,
+        name: "iPhone 12",
+        price: 799,
+        toObject: () => ({
+          _id: "product1",
           name: "iPhone 12",
           price: 799,
-          toObject: () => ({
-            _id: "product1",
-            name: "iPhone 12",
-            price: 799,
-          }),
-        },
-        {
-          _id: new Types.ObjectId(),
-          name: "Samsung Galaxy S21",
-          price: 699,
-          toObject: () => ({
-            _id: "product2",
-            name: "Samsung Galaxy S21",
-            price: 699,
-          }),
-        },
-      ]
+        }),
+      };
 
-      mockProductModel.exec.mockResolvedValue(productData)
-      mockReviewModel.aggregate.mockResolvedValue([])
+      mockProductModel.findById.mockResolvedValue(productData);
 
-      // Act
-      const result = await service.findAll(filterDto)
+      const result = await service.findById(productId);
 
-      // Assert
-      expect(result).toHaveProperty("products")
-      expect(result).toHaveProperty("total", 10)
-      expect(result).toHaveProperty("pages", 1)
-      expect(mockProductModel.find).toHaveBeenCalled()
-      expect(mockProductModel.sort).toHaveBeenCalledWith({ createdAt: -1 })
-      expect(mockProductModel.limit).toHaveBeenCalledWith(10)
-      expect(mockProductModel.skip).toHaveBeenCalledWith(0)
-    })
-  })
-})
+      expect(result).toHaveProperty("name", "iPhone 12");
+      expect(result).toHaveProperty("price", 799);
+      expect(mockProductModel.findById).toHaveBeenCalledWith(productId);
+    });
+  });
+
+  describe("create", () => {
+    it("should create a new product", async () => {
+      const newProduct = {
+        name: "MacBook Pro",
+        price: 1299,
+        category_id: new Types.ObjectId().toString(),
+        imageUrl: "http://example.com/macbook-pro.jpg",
+        colour: "Silver",
+        details: "Apple MacBook Pro with M1 chip",
+      };
+
+      const createdProduct = {
+        _id: new Types.ObjectId(),
+        ...newProduct,
+        save: jest.fn().mockResolvedValue(newProduct),
+      };
+
+      mockProductModel.save.mockResolvedValue(createdProduct);
+
+      const result = await service.create(newProduct);
+
+      expect(result).toHaveProperty("name", "MacBook Pro");
+      expect(result).toHaveProperty("price", 1299);
+      expect(result).toHaveProperty("category_id");
+      expect(result).toHaveProperty("imageUrl");
+      expect(result).toHaveProperty("colour");
+      expect(result).toHaveProperty("details");
+      expect(mockProductModel.save).toHaveBeenCalled();
+    });
+  });
+});

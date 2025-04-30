@@ -3,7 +3,7 @@ import { IsEmail, IsNotEmpty } from 'class-validator';
 
 export class VerifyEmailDto {
   @ApiProperty({
-    example: 'foydalanuvchi@example.com',
+    example: 'texnosardor@gmail.com',
     description: 'Tasdiqlash kodi yuborilgan email manzili',
   })
   @IsNotEmpty({ message: 'Email maydoni bo‘sh bo‘lishi mumkin emas' })

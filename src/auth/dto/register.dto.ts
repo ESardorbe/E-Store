@@ -17,7 +17,7 @@ export class RegisterDto {
   lastName: string;
 
   @ApiProperty({
-    example: 'sardor@gmail.com',
+    example: 'texnosardor@gmail.com',
     description: 'Foydalanuvchining email manzili (majburiy, yagona)',
   })
   @IsNotEmpty({ message: 'Email maydoni bo‘sh bo‘lishi mumkin emas' })

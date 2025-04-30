@@ -1,0 +1,62 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+        shell: bash
+
+      - name: Deploy to server
+        env:
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USERNAME }}
+          APP_DIR: /ci_cd
+          PORT: ${{ secrets.PORT }}
+        run: |
+          # Add the SSH host to known_hosts to prevent SSH warning
+          ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
+
+          # Connect to the server and perform deployment steps
+          ssh $USER@$HOST "
+            # If the application directory does not exist, clone the repository
+            if [ ! -d $APP_DIR ]; then
+              mkdir -p $APP_DIR
+              git clone https://github.com/ESardorbe/E-Store.git $APP_DIR
+            else
+              # If it exists, pull the latest changes
+              cd $APP_DIR
+              git pull origin main
+            fi
+
+            # Navigate to the application directory and set the environment variable for the port
+            cd $APP_DIR
+            echo 'PORT=${PORT}' > .env
+
+            # Install dependencies and build the application
+            npm install
+            npm run build
+
+            # Check if the app is already running with pm2; restart or start it accordingly
+            if pm2 list | grep -q 'e-store'; then
+              pm2 restart e-store
+            else
+              pm2 start dist/main.js --name e-store
+            fi
+
+            # Save pm2 process list so that it can be automatically started on reboot
+            pm2 save
+          "
+        shell: bash

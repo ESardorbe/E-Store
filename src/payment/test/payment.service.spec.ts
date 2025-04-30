@@ -1,22 +1,22 @@
-import { Test, type TestingModule } from "@nestjs/testing"
-import { PaymentService } from "../payment.service"
-import { PaymentMethod } from "../dto/process-payment.dto"
-import { PaymentStatus } from "../dto/payment-response.dto"
+import { Test, TestingModule } from "@nestjs/testing";
+import { PaymentService } from "../payment.service";
+import { PaymentMethod } from "../dto/process-payment.dto";
+import { PaymentStatus } from "../dto/payment-response.dto";
 
 describe("PaymentService", () => {
-  let service: PaymentService
+  let service: PaymentService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [PaymentService],
-    }).compile()
+    }).compile();
 
-    service = module.get<PaymentService>(PaymentService)
-  })
+    service = module.get<PaymentService>(PaymentService);
+  });
 
   it("should be defined", () => {
-    expect(service).toBeDefined()
-  })
+    expect(service).toBeDefined();
+  });
 
   describe("processPayment", () => {
     it("should process a valid credit card payment", async () => {
@@ -28,19 +28,22 @@ describe("PaymentService", () => {
         cardExpiry: "12/24",
         cardCVC: "123",
         cardholderName: "John Doe",
-      }
+      };
 
       // Act
-      const result = await service.processPayment(paymentDetails)
+      const result = await service.processPayment(paymentDetails);
 
       // Assert
-      expect(result).toHaveProperty("transactionId")
-      expect(result.transactionId).toMatch(/^pay_/)
-      expect(result).toHaveProperty("status", PaymentStatus.COMPLETED)
-      expect(result).toHaveProperty("amount", 100)
-      expect(result).toHaveProperty("timestamp")
-      expect(result).toHaveProperty("message", "Payment processed successfully")
-    })
+      expect(result).toHaveProperty("transactionId");
+      expect(result.transactionId).toMatch(/^pay_/);
+      expect(result).toHaveProperty("status", PaymentStatus.COMPLETED);
+      expect(result).toHaveProperty("amount", 100);
+      expect(result).toHaveProperty("timestamp");
+      expect(result).toHaveProperty(
+        "message",
+        "Payment processed successfully"
+      );
+    });
 
     it("should reject payment with suspicious amount", async () => {
       // Arrange
@@ -51,14 +54,16 @@ describe("PaymentService", () => {
         cardExpiry: "12/24",
         cardCVC: "123",
         cardholderName: "John Doe",
-      }
+      };
 
       // Act & Assert
-      await expect(service.processPayment(paymentDetails)).resolves.toMatchObject({
+      await expect(
+        service.processPayment(paymentDetails)
+      ).resolves.toMatchObject({
         status: PaymentStatus.FAILED,
         message: expect.stringContaining("suspicious amount"),
-      })
-    })
+      });
+    });
 
     it("should throw an error when missing required credit card details", async () => {
       // Arrange
@@ -66,28 +71,28 @@ describe("PaymentService", () => {
         amount: 100,
         paymentMethod: PaymentMethod.CREDIT_CARD,
         // Missing required fields
-      }
+      };
 
       // Act & Assert
-      await expect(service.processPayment(paymentDetails)).rejects.toThrow()
-    })
-  })
+      await expect(service.processPayment(paymentDetails)).rejects.toThrow();
+    });
+  });
 
   describe("verifyPayment", () => {
     it("should verify a valid transaction ID", async () => {
       // Act
-      const result = await service.verifyPayment("pay_12345abcde")
+      const result = await service.verifyPayment("pay_12345abcde");
 
       // Assert
-      expect(result).toEqual({ verified: true })
-    })
+      expect(result).toEqual({ verified: true });
+    });
 
     it("should reject an invalid transaction ID", async () => {
       // Act
-      const result = await service.verifyPayment("invalid_id")
+      const result = await service.verifyPayment("invalid_id");
 
       // Assert
-      expect(result).toEqual({ verified: false })
-    })
-  })
-})
+      expect(result).toEqual({ verified: false });
+    });
+  });
+});

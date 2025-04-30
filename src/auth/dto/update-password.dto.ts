@@ -3,7 +3,7 @@ import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
 
 export class UpdatePasswordDto {
   @ApiProperty({
-    example: 'foydalanuvchi@gmail.com',
+    example: 'texnosardor@gmail.com',
     description: 'Parolni tiklash uchun foydalanuvchining email manzili',
   })
   @IsNotEmpty({ message: 'Email bo‘sh bo‘lishi mumkin emas' })
