@@ -51,7 +51,7 @@ async function bootstrap() {
     console.log(`Swagger documentation available at http://localhost:${PORT}/api`)
   })
 
-  console.log("Hello from E-Store API!");
+  console.log("Hello World!");
   
 }
 bootstrap()

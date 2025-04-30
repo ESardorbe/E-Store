@@ -53,6 +53,7 @@ jobs:
             if pm2 list | grep -q 'e-store'; then
               pm2 restart e-store
             else
+              cd /ci_cd
               pm2 start dist/main.js --name e-store
             fi
 
