@@ -5,22 +5,16 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { User, UserSchema } from "./schemas/user.schema";
 import { JwtModule } from "@nestjs/jwt";
 import { MailService } from "./mail.service";
-import { ConfigModule, ConfigService } from "@nestjs/config";
 import { AccessTokenGuard } from "./guards/access-token.guard";
 import { JwtStrategy } from "./jwt.strategy";
 import { AdminGuard } from "./guards/admin.guard";
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: 'texnosardor',
-        signOptions: { expiresIn: "1h" },
-      }),
+    JwtModule.register({
+      secret: 'texnosardor',
+      signOptions: { expiresIn: "1h" },
     }),
   ],
   controllers: [AuthController],
